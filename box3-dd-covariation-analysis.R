@@ -7,6 +7,7 @@ require(ggrepel)
 require(cowplot)
 library(cluster)
 library(vegan)
+library(scatterpie)
 
 traits <- read_csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A7d88ecb9-2e7a-42da-af74-3ab4273d8cad", 
                    col_types = cols(
@@ -168,8 +169,14 @@ traits <- dd.traits %>%
 
 
 # Fuzzy Clustering
+trait.sum <- traits %>% group_by(RF3, DM1, DM2) %>% count()
 
-k = 4
+asw <- numeric(nrow(trait.sum))
+for(k in 2:(.5*length(asw)-1)){
+  asw[k] <- fanny(traits, k = k)$silinfo$avg.width
+}
+plot(asw)
+k =3
 traits.fuz <- fanny(traits, k = k)
 summary(traits.fuz)
 traitsfuz.g <- traits.fuz$clustering
@@ -185,45 +192,101 @@ cols <- cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#
 traits.pcoa <- rda(traits)
 traits.scores <- scores(traits.pcoa, display = "sites")
 traits.vecs <- scores(traits.pcoa, display = "species")
-rownames(traits.vecs) <- c("Dormancy", "Passive dispersal", "Active dispersal")
-traits.vecs
+rownames(traits.vecs) <- c("Dormancy", "Passive dispersers", "Active dispersers")
 
 
-pdf("figures/fuzzy-clusters.pdf")
-plot(traits.scores,
-     asp = 1, 
-     type = "n",
-     xlim = c(min(traits.scores[,1]) - 0.16, max(traits.scores[,1]) + 0.1),
-     ylim = c(min(traits.scores[,2]) - 0.1, max(traits.scores[,2]) + 0.1))
-abline(h = 0, lty = "dotted")
-abline(v = 0, lty = "dotted")
-box(lwd = 2)
-for(i in 1:k){
-  gg <- traits.scores[traitsfuz.g == i,]
-  hpts <- chull(gg)
-  hpts <- c(hpts, hpts[1])
-  lines(gg[hpts, ], col = cols[i])
-}
-stars(
-  traits.fuz$membership,
-  location = traits.scores,
-  # key.loc = c(0.6, 0.6),
-  # key.labels = 1:k,
-  draw.segments = TRUE,
-  add = TRUE,
-  len = 0.075, 
-  col.segments = cols,
-  labels = NULL
-)
-arrows(0,0, 0.1*traits.vecs[,1], 0.1*traits.vecs[,2], 
-       lwd = 2, lty = 1, length = 0.2, col = "black")
-text(0.1*traits.vecs[,1] + c(0,0,0.1), 
-     0.1*traits.vecs[,2] + .05,
-     labels = rownames(traits.vecs))
-dev.off()
+
+# pdf("figures/fuzzy-clusters.pdf")
+# plot(traits.scores,
+#      asp = 1, 
+#      type = "n",
+#      xlim = c(min(traits.scores[,1]) - 0.16, max(traits.scores[,1]) + 0.1),
+#      ylim = c(min(traits.scores[,2]) - 0.1, max(traits.scores[,2]) + 0.1))
+# abline(h = 0, lty = "dotted")
+# abline(v = 0, lty = "dotted")
+# box(lwd = 2)
+# for(i in 1:k){
+#   gg <- traits.scores[traitsfuz.g == i,]
+#   hpts <- chull(gg)
+#   hpts <- c(hpts, hpts[1])
+#   lines(gg[hpts, ], col = cols[i])
+# }
+# stars(
+#   traits.fuz$membership,
+#   location = traits.scores,
+#   # key.loc = c(0.6, 0.6),
+#   # key.labels = 1:k,
+#   draw.segments = TRUE,
+#   add = TRUE,
+#   len = 0.075, 
+#   col.segments = cols,
+#   labels = NULL
+# )
+# arrows(0,0, 0.1*traits.vecs[,1], 0.1*traits.vecs[,2], 
+#        lwd = 2, lty = 1, length = 0.2, col = "black")
+# text(0.1*traits.vecs[,1] + c(-.0,0.,0.15), 
+#      0.1*traits.vecs[,2] + c(.05, .05, .05),
+#      labels = rownames(traits.vecs))
+# text(unique(round(traits.scores,3)), pos = 1,
+#      labels = paste("n =", as.data.frame(trait.sum[,4])$n))
+# dev.off()
 
 traits.fuz$membership %>% as.data.frame() %>% 
   rownames_to_column(var = "species_id") %>% 
   as_tibble() %>% 
   left_join(dd.traits)
 
+
+clusters <- cbind.data.frame(traits.scores, traits.fuz$membership)
+colnames(clusters) <- c("PC1", "PC2", paste0("Group",1:k))
+clusters$hard <- traits.fuz$clustering
+clusters <- unique(round(clusters, 3))
+clusters$n <- trait.sum$n
+clusters <- clusters %>% mutate(n = n/sum(n))
+
+# for(i in 1:k){
+#   gg <- unique(round(traits.scores[traitsfuz.g == i,], 3))
+#   hpts <- chull(gg)
+#   hpts <- c(hpts, hpts[1])
+#   gg[hpts]
+# }
+
+trait.labs <- as.data.frame(traits.vecs) %>% 
+  rownames_to_column(var = "trait") %>% 
+  mutate(origin = 0)
+
+scale.arrows <- .05
+ggplot() +
+  geom_hline(alpha = 0.2, linetype = "dashed", aes(yintercept = 0)) +
+  geom_vline(alpha = 0.2, linetype = "dashed", aes(xintercept = 0)) +
+  geom_scatterpie(data = clusters, 
+                  aes(x = PC1, y = PC2, group = hard, r = .8*n), 
+                  cols = paste0("Group",1:k),
+                  color = "gray90", size = .1,
+                  alpha = 0.8) +
+  scale_fill_manual(values = cols) +
+  geom_segment(data = trait.labs, 
+               aes(x = origin, y = origin, 
+                   xend = scale.arrows*PC1, 
+                   yend = scale.arrows*PC2),
+               alpha = 0.5, color = "black",
+               arrow = arrow(angle = 20,
+                             length = unit(.1, "inches"),
+                             type = "open")) +
+  geom_text_repel(data = trait.labs,
+                   aes(x = scale.arrows*PC1, 
+                       y = scale.arrows*PC2, label = trait),
+                   color = "black",
+                   segment.alpha = 0, 
+                  point.padding = .2, 
+                  direction = "y", nudge_y = .01) +
+  coord_fixed() +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        panel.border = element_rect(fill = NA),
+        legend.position = "none",
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12)) +
+  labs(x = "PC1", y = "PC2") +
+  ggsave("figures/fuzzy-clusters.pdf", width = 7, height = 7) +
+  ggsave("figures/fuzzy-clusters.png", dpi = 500, width = 7, height = 7)
