@@ -177,7 +177,7 @@ for(k in 2:(.5*length(asw)-1)){
 }
 plot(asw)
 k =3
-traits.fuz <- fanny(traits, k = k)
+traits.fuz <- fanny(scale(traits), k = k)
 summary(traits.fuz)
 traitsfuz.g <- traits.fuz$clustering
 
@@ -193,7 +193,8 @@ traits.pcoa <- rda(traits)
 traits.scores <- scores(traits.pcoa, display = "sites")
 traits.vecs <- scores(traits.pcoa, display = "species")
 rownames(traits.vecs) <- c("Dormancy", "Passive dispersers", "Active dispersers")
-
+(var1 <- round(eigenvals(traits.pcoa)[1] / sum(eigenvals(traits.pcoa)), 3) * 100)
+(var2 <- round(eigenvals(traits.pcoa)[2] / sum(eigenvals(traits.pcoa)), 3) * 100)
 
 
 # pdf("figures/fuzzy-clusters.pdf")
@@ -255,12 +256,14 @@ trait.labs <- as.data.frame(traits.vecs) %>%
   rownames_to_column(var = "trait") %>% 
   mutate(origin = 0)
 
+
+# Make Figure
 scale.arrows <- .05
 ggplot() +
   geom_hline(alpha = 0.2, linetype = "dashed", aes(yintercept = 0)) +
   geom_vline(alpha = 0.2, linetype = "dashed", aes(xintercept = 0)) +
   geom_scatterpie(data = clusters, 
-                  aes(x = PC1, y = PC2, group = hard, r = .8*n), 
+                  aes(x = PC1, y = PC2, group = hard, r = .3*sqrt(n/pi)), 
                   cols = paste0("Group",1:k),
                   color = "gray90", size = .1,
                   alpha = 0.8) +
@@ -287,6 +290,8 @@ ggplot() +
         legend.position = "none",
         axis.title = element_text(size = 14),
         axis.text = element_text(size = 12)) +
-  labs(x = "PC1", y = "PC2") +
-  ggsave("figures/fuzzy-clusters.pdf", width = 7, height = 7) +
-  ggsave("figures/fuzzy-clusters.png", dpi = 500, width = 7, height = 7)
+  labs(x = paste0("PC1 (", var1,"%)"),
+       y = paste0("PC2 (", var2,"%)")) +
+  ggsave("figures/fuzzy-clusters.pdf", width = 5, height = 5) +
+  ggsave("figures/fuzzy-clusters.png", dpi = 500, width = 5, height = 5)
+
