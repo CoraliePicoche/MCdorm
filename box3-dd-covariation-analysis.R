@@ -267,7 +267,7 @@ ggplot() +
                   cols = paste0("Group",1:k),
                   color = "gray90", size = .1,
                   alpha = 0.8) +
-  scale_fill_manual(values = cols) +
+  scale_fill_manual(values = cols[c(4,5,3)]) +
   geom_segment(data = trait.labs, 
                aes(x = origin, y = origin, 
                    xend = scale.arrows*PC1, 
@@ -294,4 +294,5 @@ ggplot() +
        y = paste0("PC2 (", var2,"%)")) +
   ggsave("figures/fuzzy-clusters.pdf", width = 5, height = 5) +
   ggsave("figures/fuzzy-clusters.png", dpi = 500, width = 5, height = 5)
+
 
