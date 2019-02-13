@@ -1,0 +1,115 @@
+---
+title: "Supplemental Tables"
+author: "Nathan I. Wisnoski and Jay T. Lennon"
+date: "2/13/2019"
+output: pdf_document
+---
+
+Our clustering results using the data from Cereghino et al. (2018) revealed a subset of strategies for the taxa studied. In this document, we list the taxa that were clustered in the three groups. The figure in the manuscript (Fig. B3.1) shows the relative membership in each cluster, but here we include the full taxonomic information for reference.  
+
+```{r perform_calcs, include = FALSE}
+require(tidyverse)
+require(XML)
+require(ggrepel)
+require(cowplot)
+library(cluster)
+library(vegan)
+library(scatterpie)
+library(pander)
+
+all.traits <- read_csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A7d88ecb9-2e7a-42da-af74-3ab4273d8cad", 
+                   col_types = cols(
+                     "species_id" = col_character()
+                   ))
+
+metadata <- read_file("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/doi%3A10.5063%2FF1VD6WMF")
+
+md <- xmlToList(metadata)
+md$dataset$dataTable$attributeList$attribute$measurementScale$nominal$nonNumericDomain$textDomain$definition
+
+    
+# DM1 = passive dispersal, DM2 = active dispersal, RF3 = diapause/dormancy
+all.traits <- na.omit(all.traits)
+
+taxa.list <- all.traits %>%
+  select(species_id, taxon_name, taxon_number, RF3, DM1, DM2) %>%
+  group_by(taxon_name) %>%
+  count() %>%
+  arrange(desc(n))
+# 
+# 
+
+#Normalize by ranks
+all.traits[,-c(1:3)] <- decostand(all.traits[,-c(1:3)], method = "rank", MARGIN = 2)
+
+# # extract just these traits
+dd.traits <- all.traits %>%
+  filter(taxon_name %in% taxa.list$taxon_name) %>%
+  select(species_id, taxon_name, taxon_number, RF3, DM1, DM2) %>% na.omit()
+
+ 
+taxanames <- dd.traits$taxon_name
+traits <- dd.traits %>% 
+  column_to_rownames(var = "species_id") %>% 
+  select(RF3, DM1, DM2)
+
+traits.pca <- rda(traits,  scale = T)
+traits.scores <- scores(traits.pca, display = "sites")
+
+
+# Fuzzy Clustering
+trait.sum <- traits %>% group_by(RF3, DM1, DM2) %>% count()
+k =3
+traits.fuz <- fanny(scale(traits), k = k)
+traitsfuz.g <- traits.fuz$clustering
+
+taxa.by.cluster <- tibble(Taxon = map_chr(taxanames, str_replace_all, pattern =  "_", replacement =  " "), 
+  Cluster = traits.fuz$clustering) %>% 
+  group_by(Cluster, Taxon) %>% count(Taxon) %>% ungroup()
+```
+
+```{r "Cluster 1 Taxa", echo = FALSE}
+set.caption("Taxa primarily belonging in Cluster 1. These taxa have high capacities for passive dispersal. Their capacities for dormancy, however, span a range of values. Some are high, others low.")
+taxa.by.cluster %>% 
+  filter(Cluster == 1) %>% select(-Cluster) %>% 
+  arrange(desc(n)) %>% pander()
+```
+ 
+```{r "High dispersal and high dormancy taxa", echo = FALSE}
+
+tibble(
+  Taxon = map_chr(taxanames, str_replace_all, pattern =  "_", replacement =  " "), 
+  Cluster = traits.fuz$clustering,
+  PC1 = round(traits.scores[,1],3),
+  PC2 = round(traits.scores[,2],3))
+
+clusters <- cbind.data.frame(traits.scores, taxa.by.cluster)
+colnames(clusters) <- c("PC1", "PC2", paste0("Group",1:k))
+clusters$hard <- traits.fuz$clustering
+clusters <- unique(round(clusters, 3))
+clusters$n <- trait.sum$n
+clusters <- clusters %>% mutate(n = n/sum(n))
+tibble(Taxon = map_chr(taxanames[which(traits.scores[,1] > .3 & traits.scores[,2] > 0.3)], 
+        str_replace_all, pattern =  "_", replacement =  " ")) %>% 
+  group_by(Taxon) %>% count() %>% arrange(desc(n)) %>% 
+  pander(caption = "Subset of Cluster 1 taxa with high capacities for dispersal and passive dispersal.")
+```
+
+\newpage
+
+```{r "Cluster 2 Taxa", echo = FALSE}
+set.caption("Taxa primarily belonging in Cluster 2. These taxa have high capacities for dormancy and low capacities for passive dispersal. They typically have some capacity for active dispersal.")
+taxa.by.cluster %>% 
+  filter(Cluster == 2) %>% select(-Cluster) %>% 
+  arrange(desc(n)) %>% pander()
+```
+
+
+\newpage
+
+```{r "Cluster 3 Taxa", echo = FALSE}
+set.caption("Taxa primarily belonging in Cluster 3. These taxa have low capacities for dormancy, and relatively low capacities for active dispersal.")
+taxa.by.cluster %>% 
+  filter(Cluster == 3) %>% select(-Cluster) %>% 
+  arrange(desc(n)) %>% pander()
+```
