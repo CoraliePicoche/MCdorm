@@ -8,8 +8,9 @@ require(cowplot)
 library(cluster)
 library(vegan)
 library(scatterpie)
+library(pander)
 
-traits <- read_csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A7d88ecb9-2e7a-42da-af74-3ab4273d8cad", 
+all.traits <- read_csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A7d88ecb9-2e7a-42da-af74-3ab4273d8cad", 
                    col_types = cols(
                      "species_id" = col_character()
                    ))
@@ -21,52 +22,25 @@ md$dataset$dataTable$attributeList$attribute$measurementScale$nominal$nonNumeric
 
     
 # DM1 = passive dispersal, DM2 = active dispersal, RF3 = diapause/dormancy
+all.traits <- na.omit(all.traits)
 
-taxa.list <- traits %>%
+taxa.list <- all.traits %>%
   select(species_id, taxon_name, taxon_number, RF3, DM1, DM2) %>%
   group_by(taxon_name) %>%
   count() %>%
   arrange(desc(n))
 # 
 # 
+
+#Normalize by ranks
+all.traits[,-c(1:3)] <- decostand(all.traits[,-c(1:3)], method = "rank", MARGIN = 2)
+
 # # extract just these traits
-dd.traits <- traits %>%
+dd.traits <- all.traits %>%
   filter(taxon_name %in% taxa.list$taxon_name) %>%
   select(species_id, taxon_name, taxon_number, RF3, DM1, DM2) %>% na.omit()
 
 # 
-# 
-# # convert to factors
-# dd.traits$Dormancy <- factor(dd.traits$RF3, levels = c(0,1,2,3),
-#        labels = c("None", "Low", "Intermediate", "High"), ordered = T)
-# 
-# dd.traits$Passive <- factor(dd.traits$DM1, levels = c(0,1,2,3),
-#                              labels = c("None", "Low", "Intermediate", "High"), ordered = T)
-# 
-# dd.traits$Active <- factor(dd.traits$DM2, levels = c(0,1,2,3),
-#                              labels = c("None", "Low", "Intermediate", "High"), ordered = T)
-# 
-# dd.traits <- select(dd.traits, -RF3, -DM1, -DM2)
-# # dd.traits <- dd.traits %>% filter(Dormancy != "None", Passive != "None", Active != "None")
-# 
-# dd.traits$Dormancy <- factor(dd.traits$RF3, levels = c(1,2,3), 
-#                              labels = c("Low", "Intermediate", "High"), ordered = T)
-# 
-# dd.traits$Passive <- factor(dd.traits$DM1, levels = c(1,2,3), 
-#                             labels = c("Low", "Intermediate", "High"), ordered = T)
-# 
-# dd.traits$Active <- factor(dd.traits$DM2, levels = c(1,2,3), 
-#                            labels = c("Low", "Intermediate", "High"), ordered = T)
-# 
-# 
-# # Spearman rank correlation
-# cor.passive <- cor.test(x = as.numeric(dd.traits$Dormancy), y = as.numeric(dd.traits$Passive), method = "spearman")
-# cor.active <- cor.test(x = as.numeric(dd.traits$Dormancy), y = as.numeric(dd.traits$Active), method = "spearman")
-# cor.disp <- cor.test(x = as.numeric(dd.traits$Passive), y = as.numeric(dd.traits$Active), method = "spearman")
-# 
-# rho.passive <- as.character(round(cor.passive$estimate, 2))
-# rho.active <- as.character(round(cor.active$estimate, 2))
-# rho.disp <- as.character(round(cor.disp$estimate, 2))
 # 
 # # make figure for passive dispersal
 # passive.fig <- dd.traits %>%
@@ -189,10 +163,10 @@ plot(
 )
 
 cols <- cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-traits.pcoa <- rda(traits)
+traits.pcoa <- rda(traits,  scale = T)
 traits.scores <- scores(traits.pcoa, display = "sites")
 traits.vecs <- scores(traits.pcoa, display = "species")
-rownames(traits.vecs) <- c("Dormancy", "Passive dispersers", "Active dispersers")
+rownames(traits.vecs) <- c("Dormancy", "Passive dispersal", "Active dispersal")
 (var1 <- round(eigenvals(traits.pcoa)[1] / sum(eigenvals(traits.pcoa)), 3) * 100)
 (var2 <- round(eigenvals(traits.pcoa)[2] / sum(eigenvals(traits.pcoa)), 3) * 100)
 
@@ -237,13 +211,26 @@ traits.fuz$membership %>% as.data.frame() %>%
   as_tibble() %>% 
   left_join(dd.traits)
 
-
+traits.fuz$silinfo$avg.width
 clusters <- cbind.data.frame(traits.scores, traits.fuz$membership)
-colnames(clusters) <- c("PC1", "PC2", paste0("Group",1:k))
+colnames(clusters) <- c("PC1", "PC2", paste0("Cluster ",1:k))
 clusters$hard <- traits.fuz$clustering
+cluster.counts <- clusters %>% round(., 3) %>% 
+  group_by(PC1_fact = as.factor(PC1), PC2_fact = as.factor(PC2)) %>% 
+  count() %>% ungroup() %>% 
+  mutate(prop = n/sum(n)) %>% 
+  mutate(PC1 = as.numeric(levels(PC1_fact))[PC1_fact], 
+         PC2 = as.numeric(levels(PC2_fact))[PC2_fact])
+
 clusters <- unique(round(clusters, 3))
-clusters$n <- trait.sum$n
-clusters <- clusters %>% mutate(n = n/sum(n))
+clusters <- left_join(clusters, cluster.counts)
+
+# clusters <- clusters %>% round(., 3) %>% 
+#   group_by(PC1_fact = as.factor(PC1), PC2_fact = as.factor(PC2)) %>% 
+#   count() %>% ungroup() %>% 
+#   mutate(prop = n/sum(n)) %>% 
+#   mutate(PC1 = as.numeric(levels(PC1_fact))[PC1_fact], 
+#          PC2 = as.numeric(levels(PC2_fact))[PC2_fact])
 
 # for(i in 1:k){
 #   gg <- unique(round(traits.scores[traitsfuz.g == i,], 3))
@@ -258,13 +245,13 @@ trait.labs <- as.data.frame(traits.vecs) %>%
 
 
 # Make Figure
-scale.arrows <- .05
+scale.arrows <- .06
 ggplot() +
   geom_hline(alpha = 0.2, linetype = "dashed", aes(yintercept = 0)) +
   geom_vline(alpha = 0.2, linetype = "dashed", aes(xintercept = 0)) +
   geom_scatterpie(data = clusters, 
-                  aes(x = PC1, y = PC2, group = hard, r = .3*sqrt(n/pi)), 
-                  cols = paste0("Group",1:k),
+                  aes(x = PC1, y = PC2, group = hard, r = .2*sqrt(prop/pi)), 
+                  cols = paste0("Cluster ",1:k),
                   color = "gray90", size = .1,
                   alpha = 0.8) +
   scale_fill_manual(values = cols[c(4,5,3)]) +
@@ -272,7 +259,7 @@ ggplot() +
                aes(x = origin, y = origin, 
                    xend = scale.arrows*PC1, 
                    yend = scale.arrows*PC2),
-               alpha = 0.5, color = "black",
+               alpha = 1, color = "black",
                arrow = arrow(angle = 20,
                              length = unit(.1, "inches"),
                              type = "open")) +
@@ -282,17 +269,92 @@ ggplot() +
                    color = "black",
                    segment.alpha = 0, 
                   point.padding = .2, 
-                  direction = "y", nudge_y = .01) +
+                  direction = "y", nudge_y = .01, nudge_x = -.01) +
   coord_fixed() +
   theme_minimal() +
   theme(panel.grid = element_blank(),
         panel.border = element_rect(fill = NA),
-        legend.position = "none",
+        legend.position = "top",
         axis.title = element_text(size = 14),
         axis.text = element_text(size = 12)) +
   labs(x = paste0("PC1 (", var1,"%)"),
-       y = paste0("PC2 (", var2,"%)")) +
+       y = paste0("PC2 (", var2,"%)"),
+       fill = "") +
   ggsave("figures/fuzzy-clusters.pdf", width = 5, height = 5) +
   ggsave("figures/fuzzy-clusters.png", dpi = 500, width = 5, height = 5)
 
+# # # convert to factors
+# dd.traits$Dormancy <- factor(dd.traits$RF3, levels = c(0,1,2,3),
+#        labels = c("None", "Low", "Intermediate", "High"), ordered = T)
+# 
+# dd.traits$Passive <- factor(dd.traits$DM1, levels = c(0,1,2,3),
+#                              labels = c("None", "Low", "Intermediate", "High"), ordered = T)
+# 
+# dd.traits$Active <- factor(dd.traits$DM2, levels = c(0,1,2,3),
+#                              labels = c("None", "Low", "Intermediate", "High"), ordered = T)
+# 
+# dd.traits <- select(dd.traits, -RF3, -DM1, -DM2)
+#  
 
+
+# Spearman rank correlation
+# cor.passive <- cor.test(x = as.numeric(dd.traits$Dormancy), y = as.numeric(dd.traits$Passive), method = "spearman")
+# cor.active <- cor.test(x = as.numeric(dd.traits$Dormancy), y = as.numeric(dd.traits$Active), method = "spearman")
+# cor.disp <- cor.test(x = as.numeric(dd.traits$Passive), y = as.numeric(dd.traits$Active), method = "spearman")
+# 
+# rho.passive <- as.character(round(cor.passive$estimate, 2))
+# rho.active <- as.character(round(cor.active$estimate, 2))
+# rho.disp <- as.character(round(cor.disp$estimate, 2))
+# 
+# rho.passive
+# rho.active
+# rho.disp
+gr <- colorRampPalette(RColorBrewer::brewer.pal(3, "RdBu"))
+
+all.trait.corr <- all.traits %>% 
+  select(-species_id, -taxon_name, -taxon_number) %>% 
+  na.omit() %>% 
+  select(starts_with("RF"), starts_with("DM"), starts_with("BS")) %>% 
+  psych::corr.test(., method = "spearman", adjust = "holm")
+corrplot::corrplot(all.trait.corr$r, method = "ellipse", 
+                   tl.col = "black", p.mat = all.trait.corr$p, 
+                   col = gr(200), type = "lower", diag = TRUE, 
+                   addCoef.col = "black", 
+                   tl.srt = 0, tl.offset = 1, cl.pos = "n", tl.pos = "ld")
+
+
+trait.corr <- dd.traits %>% 
+  rename("Dormancy" = RF3, "Passive\nDispersal" = DM1, "Active\nDispersal" = DM2) %>% 
+  select("Dormancy", "Active\nDispersal", "Passive\nDispersal") %>% 
+  #filter_all(., all_vars(. != 0)) %>% 
+  psych::corr.test(., method = "spearman", adjust = "holm")
+print(trait.corr, short = FALSE)
+psych::corPlot(r = trait.corr$r, 
+               pval = trait.corr$p,
+               stars = TRUE,
+               numbers = TRUE,
+               adjust = TRUE, 
+               gr = gr, 
+               upper = F)
+corrplot::corrplot(trait.corr$r, method = "ellipse", 
+                   tl.col = "black", p.mat = trait.corr$p, 
+                   col = gr(200), type = "lower", diag = TRUE, 
+                   addCoef.col = "black", 
+                   tl.srt = 0, tl.offset = 1, cl.pos = "n", tl.pos = "ld")
+
+# add whitespace
+taxa.by.cluster <- tibble(Taxon = map_chr(taxanames, str_replace_all, pattern =  "_", replacement =  " "), 
+  Cluster = traits.fuz$clustering) %>% 
+  group_by(Cluster, Taxon) %>% count(Taxon) %>% ungroup()
+
+taxa.by.cluster %>% 
+  filter(Cluster == 1) %>% select(-Cluster) %>% 
+  arrange(desc(n)) %>% pander()
+
+taxa.by.cluster %>% 
+  filter(Cluster == 2) %>% select(-Cluster) %>% 
+  arrange(desc(n)) %>% pander()
+
+taxa.by.cluster %>% 
+  filter(Cluster == 3) %>% select(-Cluster) %>% 
+  arrange(desc(n)) %>% pander()
