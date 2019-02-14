@@ -4,7 +4,6 @@
 require(tidyverse)
 require(XML)
 require(ggrepel)
-require(cowplot)
 library(cluster)
 library(vegan)
 library(scatterpie)
@@ -162,7 +161,7 @@ plot(
   col = traits.fuz$silinfo$widths + 1
 )
 
-cols <- cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+cols <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 traits.pcoa <- rda(traits,  scale = T)
 traits.scores <- scores(traits.pcoa, display = "sites")
 traits.vecs <- scores(traits.pcoa, display = "species")
@@ -253,8 +252,8 @@ ggplot() +
                   aes(x = PC1, y = PC2, group = hard, r = .2*sqrt(prop/pi)), 
                   cols = paste0("Cluster ",1:k),
                   color = "gray90", size = .1,
-                  alpha = 0.8) +
-  scale_fill_manual(values = cols[c(4,5,3)]) +
+                  alpha = 1) +
+  scale_fill_manual(values = cols[c(4,5,1)]) +
   geom_segment(data = trait.labs, 
                aes(x = origin, y = origin, 
                    xend = scale.arrows*PC1, 
