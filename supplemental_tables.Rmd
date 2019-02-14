@@ -1,6 +1,7 @@
 ---
 title: "Supplemental Tables"
-author: "Nathan I. Wisnoski and Jay T. Lennon"
+subtitle: "Dormancy in metacommunities"
+author: "Nathan I. Wisnoski, Mathew A. Leibold, and Jay T. Lennon"
 date: "2/13/2019"
 output: pdf_document
 ---
@@ -76,19 +77,6 @@ taxa.by.cluster %>%
 ```
  
 ```{r "High dispersal and high dormancy taxa", echo = FALSE}
-
-tibble(
-  Taxon = map_chr(taxanames, str_replace_all, pattern =  "_", replacement =  " "), 
-  Cluster = traits.fuz$clustering,
-  PC1 = round(traits.scores[,1],3),
-  PC2 = round(traits.scores[,2],3))
-
-clusters <- cbind.data.frame(traits.scores, taxa.by.cluster)
-colnames(clusters) <- c("PC1", "PC2", paste0("Group",1:k))
-clusters$hard <- traits.fuz$clustering
-clusters <- unique(round(clusters, 3))
-clusters$n <- trait.sum$n
-clusters <- clusters %>% mutate(n = n/sum(n))
 tibble(Taxon = map_chr(taxanames[which(traits.scores[,1] > .3 & traits.scores[,2] > 0.3)], 
         str_replace_all, pattern =  "_", replacement =  " ")) %>% 
   group_by(Taxon) %>% count() %>% arrange(desc(n)) %>% 
