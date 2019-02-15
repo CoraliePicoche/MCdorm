@@ -14,13 +14,13 @@ rm(list = ls())
 set.seed(47405)
 
 # Define model parameters
-tsteps <- 10000      # Number of time steps in model
+tsteps <- 30000      # Number of time steps in model
 dt <- 1    # precision for model integration (step size)
 M <- 20 # Number of sites
 S <- 20 # Number of species
 ext <- .01 # extinction thresh
-disturb <- 0.00
-env.type <- "fluctuating" # "static", "fluctuating", "random" potential options  
+disturb <- 0.001
+env.type <- "static" # "static", "fluctuating", "random" potential options  
 spatial.synchrony <- 0 #can range from 0 to 1, what fraction of patches have the same environment
 envs <- 1 # Number of environmental variables
 
@@ -172,19 +172,30 @@ for(ddcov in c(0,1)){
 }
 
 
-colnames(out.sum) <- c("DDcov", "Dispersal", "Dormancy", "Alpha", "Beta", "Gamma")
+colnames(out.sum) <- c("DDcov", "Dispersal", "Dormancy", "α-Diversity", "β-Diversity", "γ-Diversity")
 
 # make figure to compare dispersal-diversity relationships 
 as.data.frame(out.sum) %>% 
-  gather(Alpha, Beta, Gamma, key = Scale, value = Diversity) %>%
+  gather("α-Diversity", "β-Diversity", "γ-Diversity", key = Scale, value = Diversity) %>%
   mutate(Dormancy = factor(Dormancy, levels = dorm.grad, ordered = T)) %>% 
   mutate(DDcov = ifelse(DDcov == 0, "Negative Covariation", "Positive Covariation")) %>% 
   ggplot(aes(Dispersal, Diversity, color = Dormancy, linetype = Dormancy)) +
-  geom_line(size = .5, alpha = 0.8, show.legend = F) + 
-  facet_grid(Scale ~ DDcov, scales = "free_y") +
+  geom_line(size = 1, alpha = 1, show.legend = F) + 
+  facet_grid(Scale ~ DDcov, scales = "free_y", switch = "y") +
   theme_minimal() + 
   scale_x_continuous(limits = c(0,.5)) +
+  scale_y_continuous(limits = c(0, NA)) +
   scale_color_manual(values = c("grey60", "grey20")) + 
   scale_linetype_manual(values = c("longdash", "solid")) + 
-  theme(panel.grid = element_blank(), panel.background = element_rect(color = "grey80"),
-        legend.text = element_text(size = 8), legend.key.size = unit(0.3, "cm")) 
+  theme(panel.grid = element_blank(), 
+        panel.background = element_rect(color = "grey80"),
+        legend.text = element_text(size = 8), 
+        legend.key.size = unit(0.3, "cm"),
+        strip.text.y = element_text(size = 14),
+        strip.text.x = element_text(size = 12),
+        strip.placement = "outside",
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 10)) + 
+  labs(y = "") +
+  ggsave("figures/box2.png", dpi = 500, width = 6, height = 6) +
+  ggsave("figures/box2.pdf", width = 6, height = 6)
