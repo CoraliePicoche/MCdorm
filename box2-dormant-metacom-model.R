@@ -172,16 +172,24 @@ for(ddcov in c(0,1)){
 }
 
 
-colnames(out.sum) <- c("DDcov", "Dispersal", "Dormancy", "α-Diversity", "β-Diversity", "γ-Diversity")
+colnames(out.sum) <- c("DDcov", "Dispersal", "Dormancy", "alpha", "beta", "gamma")
 
 # make figure to compare dispersal-diversity relationships 
-as.data.frame(out.sum) %>% 
-  gather("α-Diversity", "β-Diversity", "γ-Diversity", key = Scale, value = Diversity) %>%
+# To get facet labels correct, must create expressions, then parse with labeller function
+# because DDcov labels aren't expressions to parse, include in single quotes
+data.to.plot <- as.data.frame(out.sum) %>% 
+  gather("alpha", "beta", "gamma", key = Scale, value = Diversity) %>%
   mutate(Dormancy = factor(Dormancy, levels = dorm.grad, ordered = T)) %>% 
-  mutate(DDcov = ifelse(DDcov == 0, "Negative Covariation", "Positive Covariation")) %>% 
+  mutate(DDcov = ifelse(DDcov == 0, "'Negative Covariation'", "'Positive Covariation'"))  
+data.to.plot$Scale <- factor(data.to.plot$Scale)
+levels(data.to.plot$Scale) <- c(
+  expression(paste(alpha, "-diversity")),
+  expression(paste(beta, "-diversity")),
+  expression(paste(gamma, "-diversity")))
+data.to.plot %>% 
   ggplot(aes(Dispersal, Diversity, color = Dormancy, linetype = Dormancy)) +
   geom_line(size = 1, alpha = 1, show.legend = F) + 
-  facet_grid(Scale ~ DDcov, scales = "free_y", switch = "y") +
+  facet_grid(Scale ~ DDcov, scales = "free_y", switch = "y", labeller = label_parsed) +
   theme_minimal() + 
   scale_x_continuous(limits = c(0,.5)) +
   scale_y_continuous(limits = c(0, NA)) +
@@ -197,5 +205,5 @@ as.data.frame(out.sum) %>%
         axis.title = element_text(size = 14),
         axis.text = element_text(size = 10)) + 
   labs(y = "") +
-  ggsave("figures/box2.png", dpi = 500, width = 6, height = 6) +
+  ggsave("figures/box2.png", dpi = 1000, width = 6, height = 6) +
   ggsave("figures/box2.pdf", width = 6, height = 6)
