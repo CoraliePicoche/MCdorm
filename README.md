@@ -1,8 +1,8 @@
 # MCdorm
 
-This repository contains the code to make the figures associated with the manuscript in review:
+This repository contains the code to make the figures and perform analyses associated with the manuscript:
 
-Nathan I. Wisnoski, Mathew A. Leibold, and Jay T. Lennon. (in review) "Dormancy in metacommunities". The American Naturalist.
+Nathan I. Wisnoski, Mathew A. Leibold, and Jay T. Lennon. (Accepted) "Dormancy in metacommunities". The American Naturalist.
 
 A preprint of this manuscript can be found at https://osf.io/ujmzc/, doi:10.31219/osf.io/ujmzc.
 
