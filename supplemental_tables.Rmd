@@ -1,9 +1,11 @@
 ---
 title: "Supplemental Tables"
-subtitle: "Dormancy in metacommunities"
 author: "Nathan I. Wisnoski, Mathew A. Leibold, and Jay T. Lennon"
 date: "2/13/2019"
-output: pdf_document
+output:
+  word_document: default
+  pdf_document: default
+subtitle: Dormancy in metacommunities
 ---
 
 Our clustering results using the data from Cereghino et al. (2018) revealed a subset of strategies for the taxa studied. In this document, we list the taxa that were clustered in the three groups. The figure in the manuscript (Fig. B3.1) shows the relative membership in each cluster, but here we include the full taxonomic information for reference.  
