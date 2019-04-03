@@ -1,4 +1,9 @@
-# Code to run simulations and make figures for "Dormancy in Metacommunities" manuscript
+# Code to run simulations and make figures for
+# NI Wisnoski, MA Leibold, JT Lennon. "Dormancy in Metacommunities". American Naturalist.
+# Author: Nathan I Wisnoski (wisnoski@indiana.edu)
+# Date: 21 March 2019
+# Code required to make Figures in Appendix A 
+# 
 
 # Load packages
 library(tidyverse)

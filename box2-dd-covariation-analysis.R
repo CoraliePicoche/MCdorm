@@ -1,5 +1,10 @@
-# Code required to make Box 3 Figure 1 
-# Link to data is located in Supplement 1. 
+# Code to run simulations and make figures for
+# NI Wisnoski, MA Leibold, JT Lennon. "Dormancy in Metacommunities". American Naturalist.
+# Author: Nathan I Wisnoski (wisnoski@indiana.edu)
+# Date: 21 March 2019
+# Code required to make Box 2 Figure 
+# Link to data is located in Appendix B.
+
 
 require(tidyverse)
 require(XML)
@@ -134,8 +139,8 @@ ggplot() +
   labs(x = paste0("PC1 (", var1,"%)"),
        y = paste0("PC2 (", var2,"%)"),
        fill = "") +
-  ggsave("figures/box3.pdf", width = 5, height = 5) +
-  ggsave("figures/box3.png", dpi = 1000, width = 5, height = 5)
+  ggsave("figures/box2.pdf", width = 5, height = 5) +
+  ggsave("figures/box2.png", dpi = 1000, width = 5, height = 5)
 
 
 # calculate rank correlations between dispersal and dormancy vals 

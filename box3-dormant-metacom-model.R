@@ -1,4 +1,9 @@
-# Code to run simulations and make figures for "Dormancy in Metacommunities" manuscript
+# Code to run simulations and make figures for
+# NI Wisnoski, MA Leibold, JT Lennon. "Dormancy in Metacommunities". American Naturalist.
+# Author: Nathan I Wisnoski (wisnoski@indiana.edu)
+# Date: 21 March 2019
+# Code required to make Box 3 Figure 1 
+#
 
 # Load packages
 library(tidyverse)
@@ -205,5 +210,5 @@ data.to.plot %>%
         axis.title = element_text(size = 14),
         axis.text = element_text(size = 10)) + 
   labs(y = "") +
-  ggsave("figures/box2.png", dpi = 1000, width = 6, height = 6) +
-  ggsave("figures/box2.pdf", width = 6, height = 6)
+  ggsave("figures/box3.png", dpi = 1000, width = 6, height = 6) +
+  ggsave("figures/box3.pdf", width = 6, height = 6)
