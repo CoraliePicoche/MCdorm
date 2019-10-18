@@ -2,9 +2,7 @@
 
 This repository contains the code to make the figures and perform analyses associated with the manuscript:
 
-Nathan I. Wisnoski, Mathew A. Leibold, and Jay T. Lennon. (Accepted) "Dormancy in metacommunities". The American Naturalist.
-
-A preprint of this manuscript can be found at https://osf.io/ujmzc/, doi:10.31219/osf.io/ujmzc.
+Nathan I. Wisnoski, Mathew A. Leibold, and Jay T. Lennon. 2019. "Dormancy in metacommunities". The American Naturalist: 194 (2), 135-151.	
 
 *Box 2* contains an analysis of dispersal-dormancy covariation for aquatic invertebrate species that commonly inhabit tank bromeliads. The data for this analysis is from the following source: 
 
